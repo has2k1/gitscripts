@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# Parameter $1 = refname
+
+# Configuration
+stagingBranch="__staging__"
+stagingDir="$HOME/__staging__/newton"
+primeDir="$HOME/newton"
+remoteRepo="hub"
+
+
+pushedRef=$1
+pushedBranch=$(echo "$pushedRef" | sed 's|refs/heads/\(.*\)|\1|')
+
+echo
+echo "**** Pulling changes into Prime [Hub's post-update hook]"
+echo
+
+#unset local environment
+unset $(git rev-parse --local-env-vars)
+
+# If pushed to the staging branch
+if [ "$1" = "refs/heads/${stagingBranch}" ]; then
+   # Create directory if it doesn't exist
+   if [ ! -d "$stagingDir" ]; then
+      mkdir -p $stagingDir
+      echo "Staging directory: \"${stagingDir}\" created"
+   fi
+
+   # Make staging directory the work tree
+   GIT_WORK_TREE=stagingDir
+
+   # Clear the staging directory
+   #rm -rf stagingDir
+
+   echo $(git checkout $stagingBranch)
+
+else
+   # Pushed to a non staging branch
+
+   # Change to prime Directory
+   cd "$primeDir" || exit
+
+   # Checkedout branch
+   currentRef=$(git symbolic-ref HEAD)
+
+   # If branch exists in the prime repo
+   git show-ref --quiet --verify "refs/heads/${pushedBranch}" && {
+      # Get status of the repository in a short, script-safe format
+      primeStatus=$(git status --porcelain)
+
+      # If pushed to the current checkouted brand and
+      # the repo is dirty, stash the changes
+      if [ "$currentRef" = "refs/heads/${pushedBranch}" ]; then
+         if [ -n "$primeStatus" ]; then
+            HEADhash=$(git rev-parse HEAD)
+            $(git stash save -q "${HEADhash:0:7} - Stashed by post-update hook")
+            echo -e "Prime was \033[1;31mdirty\033[0m and has been stashed"
+         fi
+      fi
+
+      # Fetch
+      $(git fetch "$remoteRepo" "${pushedBranch}:${pushedBranch}")
+
+      # Should only merge by fast-forwarding
+      if command -v git-merge-ff &> /dev/null; then
+         echo $(git merge-ff "$pushedbranch $pushedbranch")
+      else
+         echo -e "\033[1;31mPrime repo merge failed\033[0m."
+         echo "Install the git-merge-ff script in a directory "
+         echo "within the PATH environment."
+      fi
+   }
+
+   # Pushed branch does not exist in the prime repo
+   git show-ref --quiet --verify "refs/heads/${pushedBranch}" || {
+      echo -e "Branch ${pushedBranch} does not \033[1;31mexist\033[0m in the Prime repo."
+      echo "Did not merge into prime"
+   }
+
+   echo "**************** End post-update hook ******************"
+
+fi

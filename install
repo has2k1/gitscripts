@@ -1,0 +1,43 @@
+#!/bin/bash
+installDir="$HOME/bin";
+installCommand="ln -s" # Default: symbolic link
+
+_usage() {
+   echo "Usage: install [-f] [-d <path/to/install/directory>]" 1>&2
+   echo -e "\033[1;39mOPTIONS\033[0m"
+   echo -e "\t\033[1;39m-d\033[0m\tUse this to provide an installation path. Default is \$HOME/bin"
+   echo -e "\t\033[1;39m-f\033[0m\tCreate files instead of symbolic links"
+   echo -e "\t\033[1;39m-h\033[0m\tShow this help"
+   exit 1
+}
+
+_install_bin_files() {
+   # Create the install directory or fail
+   res=$(mkdir -p $installDir)
+   if [ ! -z "$res" ]; then
+      echo "$res"
+      exit 1
+   fi
+
+   myDir="`dirname $(cd "${0%/*}" 2>/dev/null; echo "$PWD"/"${0##*/}")`"
+   for filename in bin/*
+   do
+      if [ -f "$filename" ]; then
+         eval "$installCommand $myDir/$filename $installDir"
+      fi
+   done
+}
+
+while getopts "d:fh" opt; do
+   case $opt in
+      f ) installCommand="cp";;
+      d ) installDir=$OPTARG;;
+      h ) _usage;;
+      * ) _usage;;
+   esac
+done
+shift $((OPTIND-1))
+
+_install_bin_files
+
+exit 0
