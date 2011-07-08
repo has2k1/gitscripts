@@ -6,11 +6,11 @@
 stagingBranch="__staging__"
 stagingDir="$HOME/__staging__/newton"
 primeDir="$HOME/newton"
-remoteRepo="hub"
+hubRepoName="hub"
 
 
 pushedRef=$1
-pushedBranch=$(echo "$pushedRef" | sed 's|refs/heads/\(.*\)|\1|')
+pushedBranch=${pushedRef#refs/heads/}
 
 echo
 echo "**** Pulling changes into Prime [Hub's post-update hook]"
@@ -27,13 +27,13 @@ if [ "$1" = "refs/heads/${stagingBranch}" ]; then
       echo "Staging directory: \"${stagingDir}\" created"
    fi
 
-   # Make staging directory the work tree
-   GIT_WORK_TREE=stagingDir
-
-   # Clear the staging directory
-   #rm -rf stagingDir
-
-   echo $(git checkout $stagingBranch)
+   # Note the current branch
+   # Checkout into the staging directory
+   # The checkout switches branches, we don't want that
+   currentRef=$(git symbolic-ref -q HEAD)
+   echo $(git "--work-tree=$stagingDir" checkout -f $stagingBranch)
+   $(git symbolic-ref -q HEAD $currentRef)
+   exit 0
 
 else
    # Pushed to a non staging branch
@@ -60,11 +60,11 @@ else
       fi
 
       # Fetch
-      $(git fetch "$remoteRepo" "${pushedBranch}")
+      $(git fetch "$hubRepoName" "${pushedBranch}")
 
       # Should only merge by fast-forwarding
       if command -v git-merge-ff &> /dev/null; then
-         echo $(git merge-ff "$pushedBranch" "$remoteRepo/$pushedBranch")
+         echo $(git merge-ff "$pushedBranch" "$hubRepoName/$pushedBranch")
       else
          echo -e "\033[1;31mPrime repo merge failed\033[0m."
          echo "Install the git-merge-ff script in a directory "
@@ -74,7 +74,7 @@ else
 
    # Pushed branch does not exist in the prime repo
    git show-ref --quiet --verify "refs/heads/${pushedBranch}" || {
-      echo -e "Branch ${pushedBranch} does not \033[1;31mexist\033[0m in the Prime repo."
+      echo -e "Branch ${pushedBranch} \033[1;31mdoes not exist\033[0m in the Prime repo."
       echo "Did not merge into prime"
    }
 
