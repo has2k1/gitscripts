@@ -60,11 +60,11 @@ else
       fi
 
       # Fetch
-      $(git fetch "$remoteRepo" "${pushedBranch}:${pushedBranch}")
+      $(git fetch "$remoteRepo" "${pushedBranch}")
 
       # Should only merge by fast-forwarding
       if command -v git-merge-ff &> /dev/null; then
-         echo $(git merge-ff "$pushedbranch $pushedbranch")
+         echo $(git merge-ff "$pushedBranch" "$remoteRepo/$pushedBranch")
       else
          echo -e "\033[1;31mPrime repo merge failed\033[0m."
          echo "Install the git-merge-ff script in a directory "
