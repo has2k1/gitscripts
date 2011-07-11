@@ -26,21 +26,24 @@ unset $(git rev-parse --local-env-vars)
 
 # If pushed to the staging branch
 if [ "$1" = "refs/heads/${stageBranch}" ]; then
-   # Create directory if it doesn't exist
-   if [ ! -d "$stageDir" ]; then
-      mkdir -p $stageDir
-      echo "Stage directory: \"${stageDir}\" created"
-   fi
+   # If the stageBranch was not deleted by the push
+   git show-ref --quiet --verify "refs/heads/${stageBranch}" && {
+      # Create directory if it doesn't exist
+      if [ ! -d "$stageDir" ]; then
+         mkdir -p $stageDir
+         echo "Stage directory: \"${stageDir}\" created"
+      fi
 
-   # Note the current branch
-   # Checkout into the staging directory
-   # The checkout switches branches, we don't want that
-   currentRef=$(git symbolic-ref -q HEAD)
-   echo $(git "--work-tree=$stageDir" checkout -f $stageBranch)
-   $(git symbolic-ref -q HEAD $currentRef)
-   $stage_set_staging
-   $prime_set_staging
-   exit 0
+      # Note the current branch
+      # Checkout into the staging directory
+      # The checkout switches branches, we don't want that
+      currentRef=$(git symbolic-ref -q HEAD)
+      echo $(git "--work-tree=$stageDir" checkout -f $stageBranch)
+      $(git symbolic-ref -q HEAD $currentRef)
+      $stage_set_staging
+      $prime_set_staging
+      exit 0
+   }
 
 else
    # Pushed to a non staging branch
