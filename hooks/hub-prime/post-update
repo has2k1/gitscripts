@@ -6,11 +6,14 @@
 stageBranch="__stage__"
 stageDir="$HOME/__stage__/newton"
 primeDir="$HOME/newton"
-stageSetupScript="$primeDir/stage_deployed"
-stageUnSetupScript="$primeDir/stage_deployed -r"
 hubRepoName="hub"
 
+# Staging setup/unset scripts
+prime_set_staging="$primeDir/prime_set_staging"
+prime_unset_staging="$primeDir/prime_set_staging -r"
+stage_set_staging="$stageDir/stage_set_staging"
 
+# Branch
 pushedRef=$1
 pushedBranch=${pushedRef#refs/heads/}
 
@@ -35,7 +38,8 @@ if [ "$1" = "refs/heads/${stageBranch}" ]; then
    currentRef=$(git symbolic-ref -q HEAD)
    echo $(git "--work-tree=$stageDir" checkout -f $stageBranch)
    $(git symbolic-ref -q HEAD $currentRef)
-   $stageSetupScript
+   $stage_set_staging
+   $prime_set_staging
    exit 0
 
 else
@@ -68,7 +72,7 @@ else
       # Should only merge by fast-forwarding
       if command -v git-merge-ff &> /dev/null; then
          echo $(git merge-ff "$pushedBranch" "$hubRepoName/$pushedBranch")
-         $stageUnSetupScript
+         $prime_unset_staging
          echo -e "\033[1;37mPrime is ready.\033[0m"
       else
          echo -e "\033[1;31mPrime repo merge failed\033[0m."
