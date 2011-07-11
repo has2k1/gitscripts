@@ -45,7 +45,7 @@ _merge_ff() {
             if [ -z $quiet ]; then
                 echo "Fast forward"
                 # Diff between previous value $branch and the current value
-                git diff --stat "$branch@{1}" "$branch"
+                echo -e $(git diff --stat --color="always" "$branch@{1}" "$branch")
             fi
         else
             echo "Error: fast forward using update-ref failed" 1>&2
