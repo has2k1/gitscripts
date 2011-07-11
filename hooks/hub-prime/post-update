@@ -6,8 +6,8 @@
 stageBranch="__stage__"
 stageDir="$HOME/__stage__/newton"
 primeDir="$HOME/newton"
-stageSetupScript="$primeDir/stage-deployed"
-stageUnSetupScript="$primeDir/stage-deployed -r"
+stageSetupScript="$primeDir/stage_deployed"
+stageUnSetupScript="$primeDir/stage_deployed -r"
 hubRepoName="hub"
 
 
@@ -63,7 +63,7 @@ else
       fi
 
       # Fetch
-      $(git fetch "$hubRepoName" "${pushedBranch}")
+      $(git fetch "$hubRepoName")
 
       # Should only merge by fast-forwarding
       if command -v git-merge-ff &> /dev/null; then
