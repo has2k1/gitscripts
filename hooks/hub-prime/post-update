@@ -44,6 +44,11 @@ if [ "$1" = "refs/heads/${stageBranch}" ]; then
       $prime_set_staging
       exit 0
    }
+   # If the stageBranch was deleted by the push
+   git show-ref --quiet --verify "refs/heads/${stageBranch}" || {
+      $prime_unset_staging
+      exit 0
+   }
 
 else
    # Pushed to a non staging branch
