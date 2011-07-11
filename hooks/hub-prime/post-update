@@ -3,9 +3,11 @@
 # Parameter $1 = refname
 
 # Configuration
-stagingBranch="__staging__"
-stagingDir="$HOME/__staging__/newton"
+stageBranch="__stage__"
+stageDir="$HOME/__stage__/newton"
 primeDir="$HOME/newton"
+stageSetupScript="$primeDir/stage-deployed"
+stageUnSetupScript="$primeDir/stage-deployed -r"
 hubRepoName="hub"
 
 
@@ -20,19 +22,20 @@ echo
 unset $(git rev-parse --local-env-vars)
 
 # If pushed to the staging branch
-if [ "$1" = "refs/heads/${stagingBranch}" ]; then
+if [ "$1" = "refs/heads/${stageBranch}" ]; then
    # Create directory if it doesn't exist
-   if [ ! -d "$stagingDir" ]; then
-      mkdir -p $stagingDir
-      echo "Staging directory: \"${stagingDir}\" created"
+   if [ ! -d "$stageDir" ]; then
+      mkdir -p $stageDir
+      echo "Stage directory: \"${stageDir}\" created"
    fi
 
    # Note the current branch
    # Checkout into the staging directory
    # The checkout switches branches, we don't want that
    currentRef=$(git symbolic-ref -q HEAD)
-   echo $(git "--work-tree=$stagingDir" checkout -f $stagingBranch)
+   echo $(git "--work-tree=$stageDir" checkout -f $stageBranch)
    $(git symbolic-ref -q HEAD $currentRef)
+   $stageSetupScript
    exit 0
 
 else
@@ -65,6 +68,8 @@ else
       # Should only merge by fast-forwarding
       if command -v git-merge-ff &> /dev/null; then
          echo $(git merge-ff "$pushedBranch" "$hubRepoName/$pushedBranch")
+         $stageUnSetupScript
+         echo -e "\033[1;37mPrime is ready.\033[0m"
       else
          echo -e "\033[1;31mPrime repo merge failed\033[0m."
          echo "Install the git-merge-ff script in a directory "
