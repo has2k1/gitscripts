@@ -30,4 +30,11 @@ The hooks have been modified to;
 2. Prime merges by fast forward instead of pulling.
 3. One to one relationship between hub and prime branches.
 
+##### /hub-prime/staging
+The staging capabality added to Maller's model is aided by the scripts in this directory. Both scripts are used by the post-update hook to setup routes to a server-side stage. Currently, a stage is checked out when a ```git push hub <branch>:<stage_branch>```. The stage branch is held by a variable in the hub's post-update hook.
+
+The stage is just a temporary work-tree of hub's stage branch. Changes made to it are untracked and overwritten whenever the branch is pushed to. hub remains a bare repository.
+
+The scripts just add redirects to .htaccess files so that the pushing ip_address is sent to the staging directory.
+
 ---

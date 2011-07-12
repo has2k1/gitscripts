@@ -1,0 +1,30 @@
+#!/bin/bash
+
+lineNumber=1
+myDir="`dirname $(cd "${0%/*}" 2>/dev/null; echo "$PWD"/"${0##*/}")`"
+routeFile="$myDir/.htaccess"
+
+# ip address to let through
+ip_address=${SSH_CLIENT%% *}
+
+restrictText=$(cat <<EOF
+##### Restrict IP #####
+RewriteEngine On
+RewriteCond %{REMOTE_ADDR} !$ip_address
+RewriteRule ^(.*)$ - [F,L]
+#######################
+EOF
+)
+
+_restrict_ip(){
+   # use temp file
+   cp $routeFile{,'.temp'}
+   tempFile="$routeFile.temp"
+   text=$(echo "$restrictText" | sed ':a;N;$!ba;s/\n/\\n/g')
+   sed "$lineNumber i\
+        $text
+       " $routeFile > "$tempFile"
+   mv $routeFile{'.temp',}
+}
+
+_restrict_ip

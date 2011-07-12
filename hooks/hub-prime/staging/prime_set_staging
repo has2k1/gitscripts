@@ -1,0 +1,95 @@
+#!/bin/bash
+
+myDir="`dirname $(cd "${0%/*}" 2>/dev/null; echo "$PWD"/"${0##*/}")`"
+routeFile="$myDir/.htaccess"
+routeStartLine=1
+routeStartMarker="##### Begin Staging Route #####"
+routeEndMarker="##### End Staging Route #####"
+
+ip_address=${SSH_CLIENT%% *}
+routeText=$(cat <<EOF
+$routeStartMarker
+RewriteEngine On
+RewriteRule \.git$ - [F,L]
+RewriteRule \.gitignore$ - [F,L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REMOTE_ADDR} $ip_address
+RewriteRule ^(.*)$ /__stage__/index.php/\$1 [L]
+RewriteCond %{REMOTE_ADDR} $ip_address
+RewriteRule ^$ /__stage__/index.php/\$1 [L]
+$routeEndMarker
+EOF
+)
+
+_usage() {
+   echo "Usage: stage_deployed [-r]" 1>&2
+   echo -e "\033[1;39mOPTIONS\033[0m"
+   echo -e "\t\033[1;39m-r\033[0m\t[optional] Remove the route"
+   echo -e "\t\033[1;39m-h\033[0m\tShow this help"
+   exit 1
+}
+
+_createRoute(){
+   if _hasRoute; then
+      echo "Staging route present"
+      exit 0
+   fi
+
+   # use temp file
+   cp $routeFile{,'.temp'}
+   tempFile="$routeFile.temp"
+   # Add new line slashes for the sed insertion command
+   text=$(echo "$routeText" | sed ':a;N;$!ba;s/\n/\\n/g')
+   sed "$routeStartLine i\
+        $text
+       " $routeFile > "$tempFile"
+   mv $routeFile{'.temp',}
+}
+
+_hasRoute() {
+   startMarker=$(sed -n "/$routeStartMarker/p" "$routeFile")
+   if [ -z "$startMarker" ]; then
+      return 1
+   fi
+   return 0
+}
+
+_removeRoute(){
+
+   if ! _hasRoute; then
+      echo "No route to delete"
+      exit 0
+   fi
+
+   # Beginning and end of the routing
+   declare -a startline=$(sed -n "/$routeStartMarker/=" "$routeFile")
+   declare -a endline=($(sed -n "/$routeEndMarker/=" $routeFile))
+   startline=${startline[0]}
+   endline=${endline[0]}
+
+
+   # If things look out of place, complain
+   if [ ! "$startline" = "$routeStartLine" ]; then
+      echo "Error: Staging route file is inconsistent"
+      echo "Make sure the current route was set by the"
+      echo "current stage_deployed script"
+      exit 1
+   fi
+
+   # Delete the staging route
+   sed -i "${startline},${endline}d" $routeFile
+
+
+   exit 0
+}
+
+while getopts "r" opt; do
+   case $opt in
+      r ) _removeRoute;;
+      * ) _usage;;
+   esac
+done
+shift $((OPTIND-1))
+
+_createRoute
